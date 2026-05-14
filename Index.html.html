@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sport Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh;font-size:14px}
+.app{max-width:420px;margin:0 auto;padding-bottom:80px}
+.topbar{padding:20px 16px 12px;border-bottom:0.5px solid #222}
+.topbar h1{font-size:18px;font-weight:500;letter-spacing:-0.3px}
+.topbar p{font-size:12px;color:#666;margin-top:2px}
+.tabs{display:flex;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:#0a0a0a;border-top:0.5px solid #222;z-index:100}
+.tab{flex:1;padding:12px 4px 16px;text-align:center;cursor:pointer;color:#555;font-size:11px;transition:color 0.15s}
+.tab i{display:block;font-size:20px;margin-bottom:2px}
+.tab.active{color:#e8e8e8}
+.page{display:none;padding:16px}
+.page.active{display:block}
+.card{background:#141414;border:0.5px solid #222;border-radius:12px;padding:16px;margin-bottom:12px}
+.card-title{font-size:11px;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;border:0.5px solid #333;background:transparent;color:#e8e8e8;cursor:pointer;font-size:13px;transition:all 0.15s}
+.btn:hover{background:#1a1a1a}
+.btn-primary{background:#e8e8e8;color:#0a0a0a;border-color:#e8e8e8}
+.btn-primary:hover{background:#ccc}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-danger{border-color:#5a1a1a;color:#f07070}
+.btn-block{width:100%;justify-content:center}
+input,select,textarea{background:#0a0a0a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:9px 12px;font-size:13px;width:100%;outline:none;font-family:inherit}
+input:focus,select:focus{border-color:#555}
+select option{background:#141414}
+label{font-size:12px;color:#666;display:block;margin-bottom:4px}
+.field{margin-bottom:12px}
+.machine-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.machine-chip{padding:10px 12px;border:0.5px solid #2a2a2a;border-radius:8px;cursor:pointer;font-size:12px;color:#666;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.machine-chip.selected{border-color:#e8e8e8;color:#e8e8e8;background:#1a1a1a}
+.machine-chip i{font-size:16px}
+.series-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #1a1a1a}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:12px;color:#555}
+.stat-val{font-size:13px;font-weight:500}
+.chart-wrap{position:relative;width:100%;height:180px}
+.filter-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.filter-scroll::-webkit-scrollbar{display:none}
+.pill{padding:6px 14px;border-radius:20px;border:0.5px solid #2a2a2a;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.pill.active{border-color:#e8e8e8;color:#e8e8e8}
+.progress-bar{height:2px;background:#1a1a1a;border-radius:2px;margin-top:6px}
+.progress-fill{height:100%;border-radius:2px;background:#4a8a4a;transition:width 0.3s}
+.timer-display{font-size:32px;font-weight:300;letter-spacing:2px;text-align:center;padding:16px 0;color:#e8e8e8}
+.timer-label{text-align:center;font-size:11px;color:#555;margin-top:-8px;margin-bottom:12px}
+.session-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid #1a1a1a;cursor:pointer}
+.session-row:last-child{border-bottom:none}
+.session-date{font-size:13px;font-weight:500}
+.session-meta{font-size:11px;color:#555;margin-top:2px}
+.session-vol{font-size:12px;color:#555;text-align:right}
+.delta-up{color:#4a8a4a;font-size:11px}
+.delta-down{color:#8a4a4a;font-size:11px}
+.imc-gauge{text-align:center;padding:16px 0}
+.imc-val{font-size:36px;font-weight:300}
+.imc-cat{font-size:12px;color:#666;margin-top:4px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:#141414;border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:80vh;overflow-y:auto;border:0.5px solid #222}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-title{font-size:15px;font-weight:500}
+.machine-img-block{width:100%;height:100px;border-radius:10px;object-fit:cover;margin-bottom:10px;display:block}
+.img-placeholder{width:100%;height:70px;background:#1a1a1a;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#444;font-size:11px;gap:4px;cursor:pointer;margin-bottom:10px;border:0.5px dashed #2a2a2a;transition:border-color 0.15s}
+.img-placeholder:hover{border-color:#555;color:#666}
+.img-placeholder i{font-size:20px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a2a1a;color:#4a8a4a;border:0.5px solid #2a3a2a;padding:10px 20px;border-radius:8px;font-size:13px;z-index:300;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.stars{display:flex;gap:6px;padding:4px 0}
+.star{font-size:20px;cursor:pointer;color:#333;transition:color 0.1s}
+.star.on{color:#c8a84a}
+.section-sep{margin:16px 0 8px;font-size:11px;color:#444;text-transform:uppercase;letter-spacing:0.5px}
+.empty-state{text-align:center;padding:40px 20px;color:#444;font-size:13px}
+.empty-state i{font-size:40px;display:block;margin-bottom:12px;color:#333}
+.last-seance-band{background:#141414;border:0.5px solid #222;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.last-seance-band .date{font-size:13px;font-weight:500}
+.last-seance-band .meta{font-size:11px;color:#555;margin-top:2px}
+.last-seance-band .stats{text-align:right;font-size:12px;color:#555}
+.last-seance-band .stars-sm{color:#c8a84a;font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>Sport Tracker</h1>
+    <p id="topbar-date"></p>
+  </div>
+
+  <!-- PAGE: Séance -->
+  <div class="page active" id="page-seance">
+    <div id="seance-start-view">
+      <div class="card" style="margin-top:8px">
+        <div class="card-title">Date de la séance</div>
+        <input type="date" id="seance-date">
+      </div>
+      <div class="card">
+        <div class="card-title">Machines utilisées</div>
+        <div class="machine-grid" id="machine-selector"></div>
+        <button class="btn btn-sm" onclick="addCustomMachine()"><i class="ti ti-plus"></i> Ajouter</button>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="startSeance()">
+        <i class="ti ti-player-play"></i> Démarrer la séance
+      </button>
+    </div>
+    <div id="seance-form-view" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div style="font-size:15px;font-weight:500" id="seance-form-date"></div>
+          <div style="font-size:12px;color:#555" id="seance-timer-display">00:00:00</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="saveSeance()"><i class="ti ti-check"></i> Sauvegarder</button>
+      </div>
+      <div id="machine-blocks"></div>
+      <div class="card" style="margin-top:8px">
+        <div class="card-title">Ressenti de la séance</div>
+        <div class="stars" id="ressenti-stars">
+          <span class="star" onclick="setRessenti(1)">★</span>
+          <span class="star" onclick="setRessenti(2)">★</span>
+          <span class="star" onclick="setRessenti(3)">★</span>
+          <span class="star" onclick="setRessenti(4)">★</span>
+          <span class="star" onclick="setRessenti(5)">★</span>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>Note libre (optionnel)</label>
+          <textarea id="seance-note" rows="2" placeholder="Douleurs, fatigue, humeur..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Suivi (Dashboard + Historique fusionnés) -->
+  <div class="page" id="page-suivi">
+    <div style="margin-top:8px">
+      <div id="last-seance-band-wrap"></div>
+      <div class="section-sep">Filtrer par machine</div>
+      <div class="filter-scroll" id="suivi-filters"></div>
+      <div id="suivi-charts"></div>
+      <div class="section-sep">Séances</div>
+      <div class="card" style="padding:0 16px">
+        <div id="suivi-history-list"></div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> Exporter CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Profil -->
+  <div class="page" id="page-profil">
+    <div style="margin-top:8px">
+      <div class="card">
+        <div class="card-title">Mes informations</div>
+        <div class="field"><label>Prénom</label><input type="text" id="profil-nom" placeholder="Prénom"></div>
+        <div class="field"><label>Poids actuel (kg)</label><input type="number" id="profil-poids" placeholder="80" step="0.1"></div>
+        <div class="field"><label>Taille (cm)</label><input type="number" id="profil-taille" placeholder="175"></div>
+        <div class="field"><label>Âge</label><input type="number" id="profil-age" placeholder="30"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveProfil()"><i class="ti ti-check"></i> Sauvegarder</button>
+      </div>
+      <div class="card imc-gauge" id="imc-card" style="display:none">
+        <div class="card-title" style="text-align:center">IMC</div>
+        <div class="imc-val" id="imc-val">—</div>
+        <div class="imc-cat" id="imc-cat"></div>
+        <div class="progress-bar" style="margin-top:12px;max-width:200px;margin-left:auto;margin-right:auto">
+          <div class="progress-fill" id="imc-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="card" id="poids-chart-card" style="display:none">
+        <div class="card-title">Évolution du poids</div>
+        <div class="chart-wrap"><canvas id="chart-poids" role="img" aria-label="Évolution du poids"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Images des machines</div>
+        <div id="machine-images-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <div class="tab active" onclick="showPage('seance',this)"><i class="ti ti-plus-circle"></i>Séance</div>
+    <div class="tab" onclick="showPage('suivi',this)"><i class="ti ti-chart-line"></i>Suivi</div>
+    <div class="tab" onclick="showPage('profil',this)"><i class="ti ti-user"></i>Profil</div>
+  </nav>
+</div>
+
+<!-- Modal détail séance -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="btn btn-sm" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Timer repos -->
+<div class="modal-overlay" id="timer-modal">
+  <div class="modal" style="text-align:center">
+    <div class="modal-header"><div class="modal-title">Repos</div><button class="btn btn-sm" onclick="stopTimer()"><i class="ti ti-x"></i></button></div>
+    <div class="timer-display" id="timer-countdown">01:30</div>
+    <div class="timer-label">Récupération entre les séries</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="setTimerDur(60)">1 min</button>
+      <button class="btn btn-sm" onclick="setTimerDur(90)">1:30</button>
+      <button class="btn btn-sm" onclick="setTimerDur(120)">2 min</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MACHINES=[
+  {id:'tapis',label:'Tapis de course',icon:'ti-walk',type:'cardio'},
+  {id:'escalier',label:'Machine escalier',icon:'ti-stairs-up',type:'cardio'},
+  {id:'rameur',label:'Rameur',icon:'ti-rowing',type:'cardio'},
+  {id:'ab_crunch',label:'Abdominal Crunch',icon:'ti-yin-yang',type:'muscu'},
+  {id:'conv_shoulder',label:'Conv. Shoulder Press',icon:'ti-barbell',type:'muscu'},
+  {id:'arm_curl',label:'Arm Curl',icon:'ti-arm',type:'muscu'},
+  {id:'lat_pull',label:'Lat Pull',icon:'ti-arrow-bar-down',type:'muscu'},
+  {id:'rear_delt',label:'Rear Delt',icon:'ti-arrow-back-up',type:'muscu'},
+  {id:'pec_fly',label:'Pec Fly',icon:'ti-butterfly',type:'muscu'},
+];
+const MET={tapis:8,escalier:9,rameur:7,ab_crunch:3.5,conv_shoulder:4,arm_curl:3,lat_pull:3.5,rear_delt:3,pec_fly:3};
+
+let state={sessions:[],profil:{poids:80,taille:175,age:30,nom:''},machineImages:{},selectedMachines:[],currentSession:null,ressenti:0,customMachines:[]};
+
+function load(){try{const s=localStorage.getItem('sport_tracker_v3');if(s)state={...state,...JSON.parse(s)};}catch(e){}}
+function save(){localStorage.setItem('sport_tracker_v3',JSON.stringify(state));}
+
+load();
+injectHistorique();
+
+function allMachines(){return[...MACHINES,...(state.customMachines||[])]}
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el)el.classList.add('active');
+  if(name==='suivi')renderSuivi();
+  if(name==='profil')renderProfil();
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ---- SÉANCE ----
+function renderMachineSelector(){
+  const el=document.getElementById('machine-selector');
+  el.innerHTML=allMachines().map(m=>{
+    const img=state.machineImages&&state.machineImages[m.id];
+    const sel=state.selectedMachines.includes(m.id);
+    return `<div class="machine-chip ${sel?'selected':''}" onclick="toggleMachine('${m.id}')">
+      ${img?`<img src="${img}" style="width:20px;height:20px;border-radius:4px;object-fit:cover">`:`<i class="ti ${m.icon}"></i>`}
+      <span>${m.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleMachine(id){
+  const i=state.selectedMachines.indexOf(id);
+  if(i>-1)state.selectedMachines.splice(i,1);else state.selectedMachines.push(id);
+  renderMachineSelector();
+}
+
+function addCustomMachine(){
+  const name=prompt('Nom de la machine :');if(!name)return;
+  const id='custom_'+Date.now();
+  state.customMachines=state.customMachines||[];
+  state.customMachines.push({id,label:name,icon:'ti-device-desktop',type:'muscu'});
+  state.selectedMachines.push(id);save();renderMachineSelector();
+}
+
+let seanceTimer=null,seanceSeconds=0;
+function startSeance(){
+  if(!state.selectedMachines.length){toast('Sélectionne au moins une machine');return;}
+  const d=document.getElementById('seance-date').value||new Date().toISOString().slice(0,10);
+  state.currentSession={date:d,machines:{}};
+  document.getElementById('seance-start-view').style.display='none';
+  document.getElementById('seance-form-view').style.display='block';
+  document.getElementById('seance-form-date').textContent=formatDate(d);
+  seanceSeconds=0;
+  seanceTimer=setInterval(()=>{seanceSeconds++;updateTimerDisplay();},1000);
+  renderMachineBlocks();
+  preloadLastSession();
+}
+
+function updateTimerDisplay(){
+  const h=Math.floor(seanceSeconds/3600),m=Math.floor((seanceSeconds%3600)/60),s=seanceSeconds%60;
+  document.getElementById('seance-timer-display').textContent=`${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function pad(n){return n.toString().padStart(2,'0')}
+
+function preloadLastSession(){
+  if(!state.sessions.length)return;
+  const last=state.sessions[state.sessions.length-1];
+  state.selectedMachines.forEach(mid=>{
+    const lm=last.machines[mid];if(!lm)return;
+    if(lm.type==='muscu'&&lm.series)state.currentSession.machines[mid]={type:'muscu',series:[...lm.series]};
+    else if(lm.type==='cardio')state.currentSession.machines[mid]={type:'cardio',...lm};
+  });
+  renderMachineBlocks();
+}
+
+function renderMachineBlocks(){
+  const el=document.getElementById('machine-blocks');
+  const all=allMachines();
+  el.innerHTML=state.selectedMachines.map(mid=>{
+    const m=all.find(x=>x.id===mid)||{id:mid,label:mid,icon:'ti-device-desktop',type:'muscu'};
+    const imgSrc=state.machineImages&&state.machineImages[mid];
+    const cur=(state.currentSession.machines[mid])||{};
+    const imgBlock=imgSrc
+      ?`<img src="${imgSrc}" class="machine-img-block" alt="${m.label}" onclick="uploadImg('${mid}')">`
+      :`<div class="img-placeholder" onclick="uploadImg('${mid}')"><i class="ti ti-camera"></i><span>Ajouter une photo</span></div>`;
+    if(m.type==='cardio'){
+      return`<div class="card" id="block-${mid}">
+        ${imgBlock}
+        <div class="card-title">${m.label}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="field"><label>Durée (min)</label><input type="number" id="${mid}-duree" value="${cur.duree||''}" placeholder="30"></div>
+          <div class="field"><label>Calories</label><input type="number" id="${mid}-cal" value="${cur.calories||''}" placeholder="—"></div>
+          <div class="field"><label>Distance / Marches</label><input type="number" id="${mid}-dist" value="${cur.distance||''}" placeholder="—"></div>
+          <div class="field"><label>Vitesse / Niv.</label><input type="number" id="${mid}-vit" value="${cur.vitesse||''}" placeholder="—"></div>
+          <div class="field"><label>Inclinaison</label><input type="number" id="${mid}-incl" value="${cur.inclinaison||''}" step="0.1" placeholder="—"></div>
+        </div>
+      </div>`;
+    }else{
+      const series=cur.series||[{reps:'',poids:''}];
+      return`<div class="card" id="block-${mid}">
+        ${imgBlock}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:0">${m.label}</div>
+          <button class="btn btn-sm" onclick="restTimer()"><i class="ti ti-clock"></i> Repos</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:4px;margin-bottom:6px">
+          <div style="font-size:11px;color:#555">Reps</div>
+          <div style="font-size:11px;color:#555">Poids (kg)</div>
+          <div></div>
+        </div>
+        <div id="series-${mid}">${series.map((_,i)=>seriesRow(mid,i,series[i])).join('')}</div>
+        <button class="btn btn-sm" style="margin-top:8px" onclick="addSeries('${mid}')"><i class="ti ti-plus"></i> Série</button>
+        <div id="pr-${mid}" style="margin-top:8px"></div>
+      </div>`;
+    }
+  }).join('');
+  state.selectedMachines.forEach(mid=>{
+    const m=all.find(x=>x.id===mid)||{type:'muscu'};
+    if(m.type==='muscu')showPR(mid);
+  });
+}
+
+function seriesRow(mid,i,s){
+  return`<div class="series-row" id="sr-${mid}-${i}">
+    <input type="number" placeholder="—" value="${s?s.reps:''}" oninput="updateSeries('${mid}',${i},'reps',this.value)">
+    <input type="number" placeholder="—" value="${s?s.poids:''}" step="0.5" oninput="updateSeries('${mid}',${i},'poids',this.value)">
+    <button class="btn btn-sm btn-danger" onclick="removeSeries('${mid}',${i})"><i class="ti ti-trash"></i></button>
+  </div>`;
+}
+
+function updateSeries(mid,i,key,val){
+  if(!state.currentSession.machines[mid])state.currentSession.machines[mid]={type:'muscu',series:[]};
+  if(!state.currentSession.machines[mid].series[i])state.currentSession.machines[mid].series[i]={};
+  state.currentSession.machines[mid].series[i][key]=parseFloat(val)||val;
+}
+function addSeries(mid){
+  if(!state.currentSession.machines[mid])state.currentSession.machines[mid]={type:'muscu',series:[]};
+  const s=state.currentSession.machines[mid].series;s.push({reps:'',poids:''});
+  document.getElementById('series-'+mid).insertAdjacentHTML('beforeend',seriesRow(mid,s.length-1,null));
+}
+function removeSeries(mid,i){
+  const s=state.currentSession.machines[mid].series;s.splice(i,1);
+  document.getElementById('series-'+mid).innerHTML=s.map((_,j)=>seriesRow(mid,j,s[j])).join('');
+}
+function showPR(mid){
+  const el=document.getElementById('pr-'+mid);if(!el)return;
+  const pr=getPR(mid);
+  if(pr)el.innerHTML=`<span style="font-size:11px;color:#555">Record : <strong style="color:#4a8a4a">${pr.poids} kg × ${pr.reps} reps</strong> (${formatDate(pr.date)})</span>`;
+}
+function getPR(mid){
+  let best=null;
+  state.sessions.forEach(s=>{
+    const m=s.machines[mid];if(!m||!m.series)return;
+    m.series.forEach(sr=>{
+      if(!sr.poids)return;
+      if(!best||sr.poids>best.poids||(sr.poids===best.poids&&sr.reps>best.reps))best={poids:sr.poids,reps:sr.reps,date:s.date};
+    });
+  });
+  return best;
+}
+function collectCardio(mid){
+  return{type:'cardio',
+    duree:parseFloat(document.getElementById(mid+'-duree')?.value)||0,
+    calories:parseFloat(document.getElementById(mid+'-cal')?.value)||0,
+    distance:parseFloat(document.getElementById(mid+'-dist')?.value)||0,
+    vitesse:parseFloat(document.getElementById(mid+'-vit')?.value)||0,
+    inclinaison:parseFloat(document.getElementById(mid+'-incl')?.value)||0,
+  };
+}
+function estimateCal(mid,duree){return Math.round((MET[mid]||3)*(state.profil.poids||80)*(duree/60));}
+function setRessenti(n){state.ressenti=n;document.querySelectorAll('#ressenti-stars .star').forEach((s,i)=>s.classList.toggle('on',i<n));}
+
+function saveSeance(){
+  clearInterval(seanceTimer);
+  const all=allMachines();
+  state.selectedMachines.forEach(mid=>{
+    const m=all.find(x=>x.id===mid)||{type:'muscu'};
+    if(m.type==='cardio'){const d=collectCardio(mid);if(!d.calories&&d.duree)d.calories=estimateCal(mid,d.duree);state.currentSession.machines[mid]=d;}
+  });
+  state.currentSession.dureeSeance=seanceSeconds;
+  state.currentSession.ressenti=state.ressenti;
+  state.currentSession.note=document.getElementById('seance-note').value;
+  state.sessions.push(state.currentSession);
+  state.sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  save();toast('Séance sauvegardée !');
+  showDelta();
+  state.selectedMachines=[];state.ressenti=0;
+  document.getElementById('seance-form-view').style.display='none';
+  document.getElementById('seance-start-view').style.display='block';
+  initSeancePage();
+}
+
+function showDelta(){
+  if(state.sessions.length<2)return;
+  const cur=state.sessions[state.sessions.length-1];
+  const prev=state.sessions[state.sessions.length-2];
+  const msgs=[];
+  Object.keys(cur.machines).forEach(mid=>{
+    const cm=cur.machines[mid],pm=prev.machines[mid];
+    if(!pm||cm.type!=='muscu')return;
+    const cmax=Math.max(...(cm.series||[]).map(s=>s.poids||0));
+    const pmax=Math.max(...(pm.series||[]).map(s=>s.poids||0));
+    if(cmax>pmax)msgs.push(`+${(cmax-pmax).toFixed(1)} kg sur ${allMachines().find(x=>x.id===mid)?.label||mid}`);
+  });
+  if(msgs.length)setTimeout(()=>toast('↑ '+msgs[0]),500);
+}
+
+function uploadImg(mid){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      if(!state.machineImages)state.machineImages={};
+      state.machineImages[mid]=ev.target.result;
+      save();renderMachineBlocks();renderMachineSelector();
+    };r.readAsDataURL(f);
+  };inp.click();
+}
+
+function initSeancePage(){
+  document.getElementById('seance-date').value=new Date().toISOString().slice(0,10);
+  renderMachineSelector();
+}
+
+// ---- SUIVI (Dashboard + Historique) ----
+let suiviFilter='all';
+const suiviCharts={};
+
+function renderSuivi(){
+  renderLastBand();
+  renderSuiviFilters();
+  renderSuiviCharts();
+  renderSuiviHistory();
+}
+
+function renderLastBand(){
+  const wrap=document.getElementById('last-seance-band-wrap');
+  if(!state.sessions.length){wrap.innerHTML='';return;}
+  const s=state.sessions[state.sessions.length-1];
+  const all=allMachines();
+  const totalVol=Object.values(s.machines).reduce((acc,m)=>acc+(m.type==='muscu'?(m.series||[]).reduce((a,sr)=>a+(sr.reps||0)*(sr.poids||0),0):0),0);
+  const totalCal=Object.values(s.machines).reduce((a,m)=>a+(m.calories||0),0);
+  const stars=s.ressenti?'★'.repeat(s.ressenti):'';
+  wrap.innerHTML=`<div class="last-seance-band" onclick="openSessionDetail(${state.sessions.length-1})">
+    <div>
+      <div class="date">Dernière séance — ${formatDate(s.date)}</div>
+      <div class="meta">${Object.keys(s.machines).map(id=>all.find(x=>x.id===id)?.label||id).join(' · ')}</div>
+      ${stars?`<div class="stars-sm">${stars}</div>`:''}
+    </div>
+    <div class="stats">
+      ${totalVol?`<div>${Math.round(totalVol).toLocaleString()} kg vol.</div>`:''}
+      ${totalCal?`<div>~${Math.round(totalCal)} kcal</div>`:''}
+      <div style="color:#444;font-size:11px;margin-top:2px">voir détail →</div>
+    </div>
+  </div>`;
+}
+
+function renderSuiviFilters(){
+  const el=document.getElementById('suivi-filters');
+  const usedIds=new Set(state.sessions.flatMap(s=>Object.keys(s.machines)));
+  const pills=[{id:'all',label:'Tout'},...allMachines().filter(m=>usedIds.has(m.id))];
+  el.innerHTML=pills.map(p=>`<div class="pill ${suiviFilter===p.id?'active':''}" onclick="setSuiviFilter('${p.id}')">${p.label}</div>`).join('');
+}
+
+function setSuiviFilter(id){suiviFilter=id;renderSuiviCharts();renderSuiviFilters();renderSuiviHistory();}
+
+function renderSuiviCharts(){
+  const el=document.getElementById('suivi-charts');
+  Object.values(suiviCharts).forEach(c=>c.destroy());
+  for(const k in suiviCharts)delete suiviCharts[k];
+  if(!state.sessions.length){el.innerHTML='';return;}
+  const sessions=state.sessions;
+  const all=allMachines();
+  let html='';
+  if(suiviFilter==='all'){
+    const labels=sessions.map(s=>formatDateShort(s.date));
+    const volData=sessions.map(s=>Object.values(s.machines).reduce((acc,m)=>acc+(m.type==='muscu'?(m.series||[]).reduce((a,sr)=>a+(sr.reps||0)*(sr.poids||0),0):0),0));
+    const calData=sessions.map(s=>Object.values(s.machines).reduce((a,m)=>a+(m.calories||0),0));
+    html=`<div class="card"><div class="card-title">Volume musculaire total (kg)</div><div class="chart-wrap"><canvas id="c-vol" role="img" aria-label="Volume musculaire par séance"></canvas></div></div>
+    <div class="card"><div class="card-title">Calories (~estimé)</div><div class="chart-wrap"><canvas id="c-cal" role="img" aria-label="Calories par séance"></canvas></div></div>`;
+    el.innerHTML=html;
+    mkChart('c-vol',labels,volData,'#4a8a4a');
+    mkChart('c-cal',labels,calData,'#c8a84a');
+  }else{
+    const m=all.find(x=>x.id===suiviFilter);if(!m){el.innerHTML='';return;}
+    const sess=sessions.filter(s=>s.machines[suiviFilter]);
+    const labels=sess.map(s=>formatDateShort(s.date));
+    const pr=getPR(suiviFilter);
+    const prHtml=pr?`<div style="font-size:12px;color:#4a8a4a;margin-bottom:12px">Record : ${pr.poids} kg × ${pr.reps} reps (${formatDate(pr.date)})</div>`:'';
+    const img=state.machineImages&&state.machineImages[suiviFilter];
+    const imgHtml=img?`<img src="${img}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:12px">`:'';
+    if(m.type==='muscu'){
+      const maxPoids=sess.map(s=>Math.max(...(s.machines[suiviFilter].series||[{poids:0}]).map(x=>x.poids||0)));
+      const vol=sess.map(s=>(s.machines[suiviFilter].series||[]).reduce((a,sr)=>a+(sr.reps||0)*(sr.poids||0),0));
+      html=`<div class="card">${imgHtml}${prHtml}<div class="card-title">Poids max (kg)</div><div class="chart-wrap"><canvas id="c-pmax" role="img" aria-label="Poids max par séance"></canvas></div></div>
+      <div class="card"><div class="card-title">Volume total (reps × kg)</div><div class="chart-wrap"><canvas id="c-mvol" role="img" aria-label="Volume total"></canvas></div></div>`;
+      el.innerHTML=html;
+      mkChart('c-pmax',labels,maxPoids,'#7a7aff');
+      mkChart('c-mvol',labels,vol,'#4a8a4a');
+    }else{
+      const dur=sess.map(s=>s.machines[suiviFilter].duree||0);
+      const cal=sess.map(s=>s.machines[suiviFilter].calories||0);
+      html=`<div class="card">${imgHtml}<div class="card-title">Durée (min)</div><div class="chart-wrap"><canvas id="c-dur" role="img" aria-label="Durée par séance"></canvas></div></div>
+      <div class="card"><div class="card-title">Calories (~estimé)</div><div class="chart-wrap"><canvas id="c-ccal" role="img" aria-label="Calories"></canvas></div></div>`;
+      el.innerHTML=html;
+      mkChart('c-dur',labels,dur,'#c8a84a');
+      mkChart('c-ccal',labels,cal,'#4a8a4a');
+    }
+  }
+}
+
+function renderSuiviHistory(){
+  const el=document.getElementById('suivi-history-list');
+  let sessions=[...state.sessions].reverse();
+  if(suiviFilter!=='all') sessions=sessions.filter(s=>s.machines[suiviFilter]);
+  if(!sessions.length){el.innerHTML=`<div class="empty-state"><i class="ti ti-history"></i>Aucune séance</div>`;return;}
+  const all=allMachines();
+  el.innerHTML=sessions.map((s)=>{
+    const realIdx=state.sessions.findIndex(x=>x.date===s.date&&x===s);
+    const totalVol=Object.values(s.machines).reduce((acc,m)=>acc+(m.type==='muscu'?(m.series||[]).reduce((a,sr)=>a+(sr.reps||0)*(sr.poids||0),0):0),0);
+    const totalCal=Object.values(s.machines).reduce((a,m)=>a+(m.calories||0),0);
+    const idx=state.sessions.indexOf(s);
+    const prev=state.sessions[idx-1];
+    let delta='';
+    if(prev){
+      const pv=Object.values(prev.machines).reduce((acc,m)=>acc+(m.type==='muscu'?(m.series||[]).reduce((a,sr)=>a+(sr.reps||0)*(sr.poids||0),0):0),0);
+      const diff=totalVol-pv;
+      if(diff>50)delta=`<span class="delta-up"> ↑${Math.round(diff)}</span>`;
+      else if(diff<-50)delta=`<span class="delta-down"> ↓${Math.abs(Math.round(diff))}</span>`;
+    }
+    return`<div class="session-row" onclick="openSessionDetail(${idx})">
+      <div>
+        <div class="session-date">${formatDate(s.date)}${delta}</div>
+        <div class="session-meta">${Object.keys(s.machines).map(id=>all.find(x=>x.id===id)?.label||id).join(' · ')}</div>
+        ${s.ressenti?`<div style="color:#c8a84a;font-size:11px">${'★'.repeat(s.ressenti)}</div>`:''}
+      </div>
+      <div class="session-vol">
+        ${totalVol?Math.round(totalVol).toLocaleString()+' kg':''}
+        ${totalCal?`<div>~${Math.round(totalCal)} kcal</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mkChart(id,labels,data,color){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  suiviCharts[id]=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:3,pointBackgroundColor:color,fill:true,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'#555',font:{size:10},maxRotation:45},grid:{color:'#1a1a1a'}},
+      y:{ticks:{color:'#555',font:{size:10}},grid:{color:'#1a1a1a'}}
+    }}
+  });
+}
+
+function openSessionDetail(idx){
+  const s=state.sessions[idx];if(!s)return;
+  const all=allMachines();
+  document.getElementById('modal-title').textContent=formatDate(s.date);
+  let html='';
+  Object.entries(s.machines).forEach(([mid,m])=>{
+    const label=all.find(x=>x.id===mid)?.label||mid;
+    const img=state.machineImages&&state.machineImages[mid];
+    html+=`<div style="margin-bottom:16px">`;
+    if(img)html+=`<img src="${img}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px">`;
+    html+=`<div style="font-size:13px;font-weight:500;margin-bottom:8px">${label}</div>`;
+    if(m.type==='muscu'){
+      (m.series||[]).forEach((sr,i)=>{html+=`<div class="stat-row"><span class="stat-label">Série ${i+1}</span><span class="stat-val">${sr.reps||0} reps × ${sr.poids||0} kg</span></div>`;});
+    }else{
+      if(m.duree)html+=`<div class="stat-row"><span class="stat-label">Durée</span><span class="stat-val">${m.duree} min</span></div>`;
+      if(m.calories)html+=`<div class="stat-row"><span class="stat-label">Calories</span><span class="stat-val">~${Math.round(m.calories)} kcal</span></div>`;
+      if(m.distance)html+=`<div class="stat-row"><span class="stat-label">Distance / Marches</span><span class="stat-val">${m.distance}</span></div>`;
+      if(m.vitesse)html+=`<div class="stat-row"><span class="stat-label">Vitesse / Niv.</span><span class="stat-val">${m.vitesse}</span></div>`;
+    }
+    html+=`</div>`;
+  });
+  if(s.note)html+=`<div class="card" style="margin-top:8px"><div class="card-title">Note</div><div style="font-size:13px;color:#aaa">${s.note}</div></div>`;
+  document.getElementById('modal-body').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay'))document.getElementById('modal-overlay').classList.remove('open');}
+
+// ---- TIMER ----
+let timerInt=null,timerSec=90;
+function restTimer(){document.getElementById('timer-modal').classList.add('open');startCountdown();}
+function setTimerDur(s){timerSec=s;clearInterval(timerInt);startCountdown();}
+function startCountdown(){
+  clearInterval(timerInt);let remaining=timerSec;updateTimerUI(remaining);
+  timerInt=setInterval(()=>{remaining--;updateTimerUI(remaining);if(remaining<=0){clearInterval(timerInt);stopTimer();}},1000);
+}
+function updateTimerUI(s){document.getElementById('timer-countdown').textContent=`${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;}
+function stopTimer(){clearInterval(timerInt);document.getElementById('timer-modal').classList.remove('open');}
+
+// ---- PROFIL ----
+function renderProfil(){
+  document.getElementById('profil-nom').value=state.profil.nom||'';
+  document.getElementById('profil-poids').value=state.profil.poids||80;
+  document.getElementById('profil-taille').value=state.profil.taille||175;
+  document.getElementById('profil-age').value=state.profil.age||30;
+  updateIMC();renderPoidsChart();renderMachineImagesList();
+}
+function saveProfil(){
+  state.profil.nom=document.getElementById('profil-nom').value;
+  state.profil.poids=parseFloat(document.getElementById('profil-poids').value)||80;
+  state.profil.taille=parseFloat(document.getElementById('profil-taille').value)||175;
+  state.profil.age=parseFloat(document.getElementById('profil-age').value)||30;
+  if(!state.profil.poidsHistory)state.profil.poidsHistory=[];
+  const today=new Date().toISOString().slice(0,10);
+  const last=state.profil.poidsHistory[state.profil.poidsHistory.length-1];
+  if(!last||last.date!==today)state.profil.poidsHistory.push({date:today,poids:state.profil.poids});
+  save();toast('Profil sauvegardé');updateIMC();renderPoidsChart();
+}
+function updateIMC(){
+  const p=state.profil.poids,t=state.profil.taille;
+  const card=document.getElementById('imc-card');
+  if(!p||!t){card.style.display='none';return;}
+  card.style.display='block';
+  const imc=p/((t/100)**2);
+  document.getElementById('imc-val').textContent=imc.toFixed(1);
+  let cat,pct;
+  if(imc<18.5){cat='Insuffisance pondérale';pct=20;}
+  else if(imc<25){cat='Poids normal';pct=45;}
+  else if(imc<30){cat='Surpoids';pct=65;}
+  else{cat='Obésité';pct=85;}
+  document.getElementById('imc-cat').textContent=cat;
+  document.getElementById('imc-bar').style.width=pct+'%';
+}
+let poidsChart=null;
+function renderPoidsChart(){
+  const hist=state.profil.poidsHistory||[];
+  const card=document.getElementById('poids-chart-card');
+  if(hist.length<2){card.style.display='none';return;}
+  card.style.display='block';
+  if(poidsChart)poidsChart.destroy();
+  poidsChart=new Chart(document.getElementById('chart-poids'),{
+    type:'line',
+    data:{labels:hist.map(h=>formatDateShort(h.date)),datasets:[{data:hist.map(h=>h.poids),borderColor:'#7a7aff',backgroundColor:'#7a7aff22',borderWidth:2,pointRadius:3,fill:true,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'#555',font:{size:10}},grid:{color:'#1a1a1a'}},
+      y:{ticks:{color:'#555',font:{size:10}},grid:{color:'#1a1a1a'}}
+    }}
+  });
+}
+function renderMachineImagesList(){
+  const el=document.getElementById('machine-images-list');
+  el.innerHTML=allMachines().map(m=>{
+    const img=state.machineImages&&state.machineImages[m.id];
+    return`<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:0.5px solid #1a1a1a">
+      ${img?`<img src="${img}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;cursor:pointer" onclick="uploadImg('${m.id}')">`
+        :`<div style="width:48px;height:48px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#444;cursor:pointer" onclick="uploadImg('${m.id}')"><i class="ti ti-camera"></i></div>`}
+      <div style="flex:1;font-size:13px">${m.label}</div>
+      <button class="btn btn-sm" onclick="uploadImg('${m.id}')"><i class="ti ti-upload"></i></button>
+    </div>`;
+  }).join('');
+}
+
+// ---- EXPORT ----
+function exportCSV(){
+  if(!state.sessions.length){toast('Aucune donnée');return;}
+  const all=allMachines();
+  let rows=[['Date','Machine','Type','Série','Reps','Poids (kg)','Durée (min)','Calories','Distance','Vitesse','Inclinaison']];
+  state.sessions.forEach(s=>{
+    Object.entries(s.machines).forEach(([mid,m])=>{
+      const label=all.find(x=>x.id===mid)?.label||mid;
+      if(m.type==='muscu'){(m.series||[]).forEach((sr,i)=>{rows.push([s.date,label,'Muscu',i+1,sr.reps||0,sr.poids||0,'','','','','']);});}
+      else{rows.push([s.date,label,'Cardio','','','',m.duree||0,Math.round(m.calories||0),m.distance||0,m.vitesse||0,m.inclinaison||0]);}
+    });
+  });
+  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sport_tracker.csv';a.click();
+}
+
+// ---- UTILS ----
+function formatDate(d){const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function formatDateShort(d){const[y,m,day]=d.split('-');return`${day}/${m}`;}
+
+function estimateCalStatic(mid,duree){return Math.round((MET[mid]||3)*80*(duree/60));}
+
+// ---- HISTORIQUE INITIAL ----
+function injectHistorique(){
+  if(state.sessions.length>0)return;
+  const raw=[
+    {date:'2024-10-18',machines:{tapis:{type:'cardio',duree:2,vitesse:7.5,inclinaison:1.0,calories:estimateCalStatic('tapis',2)}}},
+    {date:'2025-01-23',machines:{ab_crunch:{type:'muscu',series:[{reps:40,poids:30},{reps:40,poids:23}]},arm_curl:{type:'muscu',series:[{reps:10,poids:30},{reps:2,poids:30}]},rear_delt:{type:'muscu',series:[{reps:30,poids:25},{reps:40,poids:25}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]}}},
+    {date:'2025-06-05',machines:{rear_delt:{type:'muscu',series:[{reps:30,poids:25},{reps:40,poids:25}]},ab_crunch:{type:'muscu',series:[{reps:20,poids:9},{reps:20,poids:9}]},arm_curl:{type:'muscu',series:[{reps:10,poids:30},{reps:30,poids:14}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]}}},
+    {date:'2025-11-08',machines:{ab_crunch:{type:'muscu',series:[{reps:20,poids:27},{reps:27,poids:27}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:36,poids:14}]},rear_delt:{type:'muscu',series:[{reps:40,poids:35},{reps:10,poids:9}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]}}},
+    {date:'2026-02-04',machines:{ab_crunch:{type:'muscu',series:[{reps:40,poids:30},{reps:40,poids:23}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},lat_pull:{type:'muscu',series:[{reps:30,poids:25},{reps:40,poids:30}]},arm_curl:{type:'muscu',series:[{reps:10,poids:30},{reps:30,poids:14},{reps:14,poids:14}]}}},
+    {date:'2026-04-07',machines:{ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:30}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:36,poids:14}]},lat_pull:{type:'muscu',series:[{reps:30,poids:25},{reps:40,poids:30},{reps:9,poids:18}]}}},
+    {date:'2026-04-10',machines:{escalier:{type:'cardio',duree:15,distance:564,calories:estimateCalStatic('escalier',15)},ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:20}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},lat_pull:{type:'muscu',series:[{reps:40,poids:30}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:30,poids:14}]}}},
+    {date:'2026-04-14',machines:{escalier:{type:'cardio',duree:12,distance:575,calories:estimateCalStatic('escalier',12)},ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:20}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:36,poids:14}]},lat_pull:{type:'muscu',series:[{reps:40,poids:25},{reps:30,poids:18},{reps:30,poids:9}]},pec_fly:{type:'muscu',series:[{reps:40,poids:25},{reps:1,poids:25}]}}},
+    {date:'2026-04-22',machines:{escalier:{type:'cardio',duree:13,distance:624,calories:estimateCalStatic('escalier',13)},ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:20}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:29,poids:14}]},lat_pull:{type:'muscu',series:[{reps:40,poids:25},{reps:30,poids:18},{reps:30,poids:9}]},pec_fly:{type:'muscu',series:[{reps:40,poids:25},{reps:1,poids:25}]}}},
+    {date:'2026-04-28',machines:{escalier:{type:'cardio',duree:13,distance:631,calories:estimateCalStatic('escalier',13)},rameur:{type:'cardio',duree:1,calories:estimateCalStatic('rameur',1)},ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:20}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:36,poids:14}]},lat_pull:{type:'muscu',series:[{reps:40,poids:25},{reps:30,poids:18},{reps:30,poids:9}]},pec_fly:{type:'muscu',series:[{reps:40,poids:25},{reps:1,poids:25}]}}},
+    {date:'2026-05-05',machines:{escalier:{type:'cardio',duree:16,distance:804,calories:estimateCalStatic('escalier',16)},rameur:{type:'cardio',duree:1,calories:estimateCalStatic('rameur',1)},ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:20}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:36,poids:14}]},lat_pull:{type:'muscu',series:[{reps:40,poids:25},{reps:30,poids:18},{reps:30,poids:9}]},pec_fly:{type:'muscu',series:[{reps:40,poids:25},{reps:1,poids:25}]}}},
+    {date:'2026-05-12',machines:{escalier:{type:'cardio',duree:10,distance:476,calories:estimateCalStatic('escalier',10)},rameur:{type:'cardio',duree:1,calories:estimateCalStatic('rameur',1)},ab_crunch:{type:'muscu',series:[{reps:20,poids:30},{reps:20,poids:20}]},conv_shoulder:{type:'muscu',series:[{reps:15,poids:9},{reps:15,poids:9}]},arm_curl:{type:'muscu',series:[{reps:40,poids:30},{reps:36,poids:14}]},lat_pull:{type:'muscu',series:[{reps:40,poids:25},{reps:30,poids:18},{reps:30,poids:9}]},pec_fly:{type:'muscu',series:[{reps:40,poids:25},{reps:1,poids:25}]}}},
+  ];
+  raw.sort((a,b)=>a.date.localeCompare(b.date));
+  state.sessions=raw;save();
+}
+
+document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+initSeancePage();
+</script>
+</body>
+</html>
